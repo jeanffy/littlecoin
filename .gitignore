@@ -1,8 +1,6 @@
 .vscode/*
 !.vscode/launch.json
 !.vscode/tasks.json
-data/*
-!data/.gitkeep
 dist
 node_modules
 output

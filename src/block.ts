@@ -1,10 +1,11 @@
 import * as crypto from 'crypto';
 
-const blockMiningConfig = {
-  maxIterations: 10000000
+export const blockConfig = {
+  version: 1
 };
 
 export interface Block {
+  version: number;
   index: number;
   previousHash: string;
   horodate: string;
@@ -16,6 +17,7 @@ export interface Block {
 export interface NewBlockArgs {
   previousBlock: Block;
   numberOfLeadingZeroes: number;
+  maxTries?: number;
   payload: string;
 }
 
@@ -23,10 +25,14 @@ export function mineNewBlock(args: NewBlockArgs): Block | undefined {
   const start = new Date();
   console.log(`Mining started at ${start.toISOString()}`);
 
-  const maxIterations = blockMiningConfig.maxIterations;
+  const maxTries = (args.maxTries === undefined ? Number.MAX_SAFE_INTEGER : args.maxTries);
   const expected = '0'.repeat(args.numberOfLeadingZeroes);
+  console.log('Parameters:');
+  console.log(`- maxTries: ${maxTries === Number.MAX_SAFE_INTEGER ? 'infinite' : maxTries}`);
+  console.log(`- numberOfLeadingZeroes: ${args.numberOfLeadingZeroes}`);
 
   const newBlock: Block = {
+    version: blockConfig.version,
     index: args.previousBlock.index + 1,
     previousHash: args.previousBlock.hash,
     horodate: new Date().toISOString(),
@@ -35,7 +41,7 @@ export function mineNewBlock(args: NewBlockArgs): Block | undefined {
     hash: ''
   };
 
-  for (let i = 0; i < maxIterations; i++) {
+  for (let i = 0; i < maxTries; i++) {
     newBlock.nonce = i;
     newBlock.hash = '';
     const newBlockStr = JSON.stringify(newBlock);
@@ -48,4 +54,14 @@ export function mineNewBlock(args: NewBlockArgs): Block | undefined {
   }
 
   return undefined;
+}
+
+export function printBlock(block: Block): void {
+  console.log(`- version: ${block.version}
+- index: ${block.index}
+- previousHash: ${block.previousHash}
+- horodate: ${block.horodate}
+- payload: ${block.payload}
+- nonce: ${block.nonce}
+- hash: ${block.hash}`);
 }

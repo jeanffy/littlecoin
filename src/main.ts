@@ -1,14 +1,24 @@
-import * as path from 'path';
-import { Block, mineNewBlock } from './block';
+import * as fs from 'fs';
+import { Block, blockConfig, mineNewBlock, printBlock } from './block';
 import { Blockchain, blockchainConfig, loadBlockchain, saveBlockchain } from './blockchain';
-import { AddParameters, AppCommand, commandLineArgs, getCommand } from './command-line-args';
+import { AddParameters, AppCommand, CommandLineArgs, commandLineArgs, InitParameters } from './command-line-args';
 
-function initializeBlockchain(filePath: string): void {
-  console.log('Creating blockchain...');
+function initializeBlockchain(params: InitParameters): void {
+  if (fs.existsSync(params.blockchainPath)) {
+    if (params.force) {
+      console.warn(`Warning: Blockchain already exists at '${params.blockchainPath}', overwriting as per user request`);
+    } else {
+      console.error(`Error: Blockchain already exists at '${params.blockchainPath}'`);
+      return;
+    }
+  }
+
+  console.log(`Creating blockchain in '${params.blockchainPath}'...`);
 
   const blockchain: Blockchain = [];
 
   const fakePreviousBlock: Block = {
+    version: blockConfig.version,
     index: -1,
     previousHash: '0'.repeat(64),
     horodate: new Date().toISOString(),
@@ -26,44 +36,52 @@ function initializeBlockchain(filePath: string): void {
   });
 
   if (genesisBlock === undefined) {
-    throw new Error('Cannot mine genesis block');
+    console.error('Error: Cannot mine genesis block');
+    return;
   }
 
   blockchain.push(genesisBlock);
-  saveBlockchain(blockchain, filePath);
+  saveBlockchain(blockchain, params.blockchainPath);
 
   console.log('Done.');
 }
 
-function addBlockToBlockchain(filePath: string, payload: string): void {
-  console.log('Adding new block to blockchain...');
+function addBlockToBlockchain(params: AddParameters): void {
+  console.log(`Adding new block to blockchain '${params.blockchainPath}'...`);
 
-  const blockchain = loadBlockchain(filePath);
+  const blockchain = loadBlockchain(params.blockchainPath);
 
   console.log('Mining block...');
 
   const newBlock = mineNewBlock({
     previousBlock: blockchain[blockchain.length - 1],
     numberOfLeadingZeroes: blockchainConfig.numberOfLeadingZeroes,
-    payload: payload
+    maxTries: params.maxTries,
+    payload: params.payload
   });
 
   if (newBlock === undefined) {
-    throw new Error('Cannot mine new block');
+    console.error(`Error: Cannot mine new block`);
+    return;
   }
 
-  blockchain.push(newBlock);
-  saveBlockchain(blockchain, filePath);
+  if (params.dryRun) {
+    console.log('Info: Dry run requested, blockchain not modified')
+  } else {
+    blockchain.push(newBlock);
+    saveBlockchain(blockchain, params.blockchainPath);
+  }
 
   console.log('Done.');
+  console.log('Generated block:');
+  printBlock(newBlock);
 }
 
 function main(): void {
   try {
-    const blockchainFilePath = path.join(process.cwd(), 'data', 'blockchain.json');
-    switch (getCommand()) {
-      case AppCommand.Init: initializeBlockchain(blockchainFilePath); break;
-      case AppCommand.Add: addBlockToBlockchain(blockchainFilePath, (commandLineArgs as AddParameters).payload); break;
+    switch (CommandLineArgs.getCommand()) {
+      case AppCommand.Init: initializeBlockchain(CommandLineArgs.getInitParameters()); break;
+      case AppCommand.Add: addBlockToBlockchain(CommandLineArgs.getAddParameters()); break;
     }
   } catch (error) {
     console.error(`Error: ${JSON.stringify(error)}`);
