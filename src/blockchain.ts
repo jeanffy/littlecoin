@@ -1,8 +1,9 @@
-import * as fs from 'fs';
-import { Block } from './block';
+import fs from 'node:fs';
+import path from 'node:path';
+import { Block } from './block.js';
 
 export const blockchainConfig = {
-  numberOfLeadingZeroes: 5
+  numberOfLeadingZeroes: 5,
 };
 
 export type Blockchain = Block[];
@@ -17,5 +18,7 @@ export function loadBlockchain(filePath: string): Blockchain {
 }
 
 export function saveBlockchain(blockchain: Blockchain, filePath: string): void {
+  const dirname = path.dirname(filePath);
+  fs.mkdirSync(dirname, { recursive: true });
   fs.writeFileSync(filePath, JSON.stringify(blockchain.reverse(), undefined, 2), { encoding: 'utf-8' });
 }

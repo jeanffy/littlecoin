@@ -1,0 +1,18 @@
+{
+  "ignoreWords": [
+  ],
+  "ignorePaths": [
+    ".git",
+    ".vscode",
+    ".eslintrc.json",
+    "jest.config.mjs",
+    ".prettierrc.json"
+  ],
+  "language": "en",
+  "useGitignore": true,
+  "words": [
+    "horodate",
+    "jeanffy",
+    "littlecoin"
+  ]
+}

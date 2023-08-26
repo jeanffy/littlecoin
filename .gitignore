@@ -1,6 +1,9 @@
 .vscode/*
 !.vscode/launch.json
+!.vscode/settings.json
 !.vscode/tasks.json
+.env
+.eslintcache
 dist
 node_modules
 output

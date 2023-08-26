@@ -1,33 +1,56 @@
 {
   "name": "littlecoin",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "",
   "repository": {
     "type": "git",
     "url": ""
   },
+  "keywords": [],
   "author": "Jeanffy",
   "license": "All rights reserved",
+  "engines": {
+    "node": "^20",
+    "npm": "^9"
+  },
   "private": true,
   "main": "",
+  "type": "module",
   "scripts": {
     "build": "tsc --incremental",
-    "test": "jest --coverage --bail",
-    "start": "ts-node src/main.ts",
-    "debug": "node --nolazy --inspect dist/src/main.js"
+    "lint": "concurrently npm:lint:*",
+    "lint:circular": "madge -c --ts-config ./tsconfig.json --extensions ts src",
+    "lint:format": "prettier --check --ignore-path ../../.prettierignore --cache \"{src,test}/**/*.ts\"",
+    "lint:spell": "cspell --dot --no-must-find-files --no-progress .",
+    "lint:syntax": "eslint --max-warnings 0 --cache \"{src,test}/**/*.ts\"",
+    "test": "NODE_OPTIONS='--experimental-vm-modules --no-warnings' jest",
+    "start": "node dist/src/main.js"
   },
   "dependencies": {
-    "yargs": "17.0.1"
+    "commander": "11.0.0",
+    "dotenv": "16.3.1"
   },
   "devDependencies": {
-    "@types/jest": "26.0.23",
-    "@types/node": "15.12.2",
-    "@types/yargs": "17.0.0",
-    "jest": "27.0.4",
-    "jest-circus": "27.0.4",
-    "jest-junit": "12.1.0",
-    "ts-jest": "27.0.3",
-    "ts-node": "^10.4.0",
-    "typescript": "4.3.2"
+    "@types/jest": "29.5.4",
+    "@types/node": "20.5.6",
+    "@types/yargs": "17.0.24",
+    "@typescript-eslint/eslint-plugin": "6.2.1",
+    "@typescript-eslint/parser": "6.2.1",
+    "concurrently": "8.2.0",
+    "cspell": "6.31.2",
+    "eslint": "8.46.0",
+    "eslint-config-prettier": "8.10.0",
+    "eslint-import-resolver-typescript": "3.5.5",
+    "eslint-plugin-import": "2.28.0",
+    "eslint-plugin-jsdoc": "46.4.5",
+    "eslint-plugin-unused-imports": "3.0.0",
+    "jest": "29.6.4",
+    "jest-circus": "29.6.4",
+    "jest-junit": "16.0.0",
+    "madge": "6.1.0",
+    "prettier": "3.0.1",
+    "ts-jest": "29.1.1",
+    "ts-jest-resolver": "2.0.1",
+    "typescript": "5.2.2"
   }
 }

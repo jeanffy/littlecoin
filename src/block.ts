@@ -1,8 +1,29 @@
-import * as crypto from 'crypto';
+import crypto from 'node:crypto';
+import { Logger } from './logger.js';
 
 export const blockConfig = {
-  version: 1
+  version: 1,
 };
+
+export class LLCBlock {
+  public version: number;
+  public height: number;
+  public previousHash: string;
+  public horodate: string;
+  public payload: string;
+  public nonce: number;
+  public hash: string;
+
+  public constructor(previousBlock: LLCBlock) {
+    this.version = blockConfig.version;
+    this.height = previousBlock.height + 1;
+    this.previousHash = previousBlock.hash;
+    this.horodate = new Date().toISOString();
+    this.payload = '';
+    this.nonce = 0;
+    this.hash = '';
+  }
+}
 
 export interface Block {
   version: number;
@@ -21,15 +42,15 @@ export interface NewBlockArgs {
   payload: string;
 }
 
-export function mineNewBlock(args: NewBlockArgs): Block | undefined {
+export function mineNewBlock(args: NewBlockArgs, logger: Logger): Block | undefined {
   const start = new Date();
-  console.log(`Mining started at ${start.toISOString()}`);
+  logger.info(`Mining started at ${start.toISOString()}`);
 
-  const maxTries = (args.maxTries === undefined ? Number.MAX_SAFE_INTEGER : args.maxTries);
+  const maxTries = args.maxTries === undefined ? Number.MAX_SAFE_INTEGER : args.maxTries;
   const expected = '0'.repeat(args.numberOfLeadingZeroes);
-  console.log('Parameters:');
-  console.log(`- maxTries: ${maxTries === Number.MAX_SAFE_INTEGER ? 'infinite' : maxTries}`);
-  console.log(`- numberOfLeadingZeroes: ${args.numberOfLeadingZeroes}`);
+  logger.info('Parameters:');
+  logger.info(`- maxTries: ${maxTries === Number.MAX_SAFE_INTEGER ? 'infinite' : maxTries}`);
+  logger.info(`- numberOfLeadingZeroes: ${args.numberOfLeadingZeroes}`);
 
   const newBlock: Block = {
     version: blockConfig.version,
@@ -38,7 +59,7 @@ export function mineNewBlock(args: NewBlockArgs): Block | undefined {
     horodate: new Date().toISOString(),
     payload: args.payload,
     nonce: 0,
-    hash: ''
+    hash: '',
   };
 
   for (let i = 0; i < maxTries; i++) {
@@ -48,7 +69,8 @@ export function mineNewBlock(args: NewBlockArgs): Block | undefined {
     newBlock.hash = crypto.createHash('sha256').update(newBlockStr).digest('hex');
     if (newBlock.hash.startsWith(expected)) {
       const end = new Date();
-      console.log(`Nonce found at ${end.toISOString()} (duration ${(end.getTime() - start.getTime()) / 1000}s)`);
+      logger.info(`Nonce found at ${end.toISOString()} (duration ${(end.getTime() - start.getTime()) / 1000}s)`);
+      logger.info(`${i} iterations`);
       return newBlock;
     }
   }
@@ -56,12 +78,12 @@ export function mineNewBlock(args: NewBlockArgs): Block | undefined {
   return undefined;
 }
 
-export function printBlock(block: Block): void {
-  console.log(`- version: ${block.version}
-- index: ${block.index}
-- previousHash: ${block.previousHash}
-- horodate: ${block.horodate}
-- payload: ${block.payload}
-- nonce: ${block.nonce}
-- hash: ${block.hash}`);
+export function printBlock(block: Block, logger: Logger): void {
+  logger.info(`- version: ${block.version}`);
+  logger.info(`- index: ${block.index}`);
+  logger.info(`- previousHash: ${block.previousHash}`);
+  logger.info(`- horodate: ${block.horodate}`);
+  logger.info(`- payload: ${block.payload}`);
+  logger.info(`- nonce: ${block.nonce}`);
+  logger.info(`- hash: ${block.hash}`);
 }

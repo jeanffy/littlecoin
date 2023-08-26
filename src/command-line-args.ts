@@ -1,26 +1,9 @@
-import * as yargs from 'yargs';
+import { Command, InvalidArgumentError } from 'commander';
 
 export enum AppCommand {
   Init = 'init',
-  Add = 'add'
+  Add = 'add',
 }
-
-export const commandLineArgs: any = yargs
-  .boolean('help').describe('help', 'Display this help')
-  .command(AppCommand.Init, 'Initialize blockchain', (y: yargs.Argv) => y
-    .option('blockchain-path', { description: 'Blockchain file path', type: 'string', alias: 'b', demandOption: true })
-    .option('force', { description: 'Force writing file if already exists', type: 'boolean', default: false })
-  )
-  .command(AppCommand.Add, 'Add a block to the blockchain', (y: yargs.Argv) => y
-    .option('blockchain-path', { description: 'Blockchain file path', type: 'string', alias: 'b', demandOption: true })
-    .option('payload', { descriptione: 'Payload to include in block', type: 'string', alias: 'p', demandOption: true })
-    .option('max-tries', { description: 'Maximum number of tries to find a nonce', type: 'number', default: undefined })
-    .option('dry-run', { description: 'Mine the block without adding it to the blockchain', type: 'boolean', default: false })
-  )
-  .demandCommand(1)
-  .strict()
-  .wrap(yargs.terminalWidth())
-  .argv;
 
 export interface InitParameters {
   blockchainPath: string;
@@ -34,16 +17,52 @@ export interface AddParameters {
   dryRun: boolean;
 }
 
-export namespace CommandLineArgs {
-  export function getCommand(): string {
-    return commandLineArgs._[0];
+function myParseInt(value: string): number {
+  const parsedValue = parseInt(value, 10);
+  if (isNaN(parsedValue)) {
+    throw new InvalidArgumentError('');
   }
+  return parsedValue;
+}
 
-  export function getInitParameters(): InitParameters {
-    return commandLineArgs as InitParameters;
-  }
+export class CommandLineArgs {
+  private program = new Command();
 
-  export function getAddParameters(): AddParameters {
-    return commandLineArgs as AddParameters;
+  public command?: AppCommand;
+  public initParameters?: InitParameters;
+  public addParameters?: AddParameters;
+
+  public constructor() {
+    this.program
+      .command(AppCommand.Init)
+      .description('Initialize blockchain')
+      .requiredOption('-b, --blockchain-path <value>', 'Blockchain file path')
+      .option('--force', 'Force writing file if already exists', false)
+      .action(options => {
+        this.command = AppCommand.Init;
+        this.initParameters = {
+          blockchainPath: options.blockchainPath,
+          force: options.force,
+        };
+      });
+
+    this.program
+      .command(AppCommand.Add)
+      .description('Add a block to the blockchain')
+      .requiredOption('-b, --blockchain-path <value>', 'Blockchain file path')
+      .requiredOption('-p, --payload <value>', 'Payload to include in block')
+      .option('--max-tries <value>', 'Maximum number of tries to find a nonce', myParseInt)
+      .option('--dry-run', 'Mine the block without adding it to the blockchain', false)
+      .action(options => {
+        this.command = AppCommand.Add;
+        this.addParameters = {
+          blockchainPath: options.blockchainPath,
+          payload: options.payload,
+          maxTries: options.maxTries,
+          dryRun: options.dryRun,
+        };
+      });
+
+    this.program.parse();
   }
 }

@@ -1,19 +1,26 @@
-import * as fs from 'fs';
-import { Block, blockConfig, mineNewBlock, printBlock } from './block';
-import { Blockchain, blockchainConfig, loadBlockchain, saveBlockchain } from './blockchain';
-import { AddParameters, AppCommand, CommandLineArgs, commandLineArgs, InitParameters } from './command-line-args';
+import fs from 'node:fs';
+import dotenv from 'dotenv';
+import { Block, blockConfig, mineNewBlock, printBlock } from './block.js';
+import { Blockchain, blockchainConfig, loadBlockchain, saveBlockchain } from './blockchain.js';
+import { AddParameters, CommandLineArgs, InitParameters } from './command-line-args.js';
+import { Logger } from './logger.js';
+
+dotenv.config();
+const logger = new Logger();
 
 function initializeBlockchain(params: InitParameters): void {
   if (fs.existsSync(params.blockchainPath)) {
     if (params.force) {
-      console.warn(`Warning: Blockchain already exists at '${params.blockchainPath}', overwriting as per user request`);
+      logger.warning(
+        `Warning: Blockchain already exists at '${params.blockchainPath}', overwriting as per user request`,
+      );
     } else {
-      console.error(`Error: Blockchain already exists at '${params.blockchainPath}'`);
+      logger.warning(`Error: Blockchain already exists at '${params.blockchainPath}'`);
       return;
     }
   }
 
-  console.log(`Creating blockchain in '${params.blockchainPath}'...`);
+  logger.info(`Creating blockchain in '${params.blockchainPath}'...`);
 
   const blockchain: Blockchain = [];
 
@@ -24,70 +31,78 @@ function initializeBlockchain(params: InitParameters): void {
     horodate: new Date().toISOString(),
     payload: '',
     nonce: 0,
-    hash: '0'.repeat(64)
+    hash: '0'.repeat(64),
   };
 
-  console.log('Mining genesis block...');
+  logger.info('Mining genesis block...');
 
-  const genesisBlock = mineNewBlock({
-    previousBlock: fakePreviousBlock,
-    numberOfLeadingZeroes: blockchainConfig.numberOfLeadingZeroes,
-    payload: 'This is genesis block'
-  });
+  const genesisBlock = mineNewBlock(
+    {
+      previousBlock: fakePreviousBlock,
+      numberOfLeadingZeroes: blockchainConfig.numberOfLeadingZeroes,
+      payload: 'This is genesis block',
+    },
+    logger,
+  );
 
   if (genesisBlock === undefined) {
-    console.error('Error: Cannot mine genesis block');
+    logger.error('Error: Cannot mine genesis block');
     return;
   }
 
   blockchain.push(genesisBlock);
   saveBlockchain(blockchain, params.blockchainPath);
 
-  console.log('Done.');
+  logger.info('Done.');
 }
 
 function addBlockToBlockchain(params: AddParameters): void {
-  console.log(`Adding new block to blockchain '${params.blockchainPath}'...`);
+  logger.info(`Adding new block to blockchain '${params.blockchainPath}'...`);
 
   const blockchain = loadBlockchain(params.blockchainPath);
 
-  console.log('Mining block...');
+  logger.info('Mining block...');
 
-  const newBlock = mineNewBlock({
-    previousBlock: blockchain[blockchain.length - 1],
-    numberOfLeadingZeroes: blockchainConfig.numberOfLeadingZeroes,
-    maxTries: params.maxTries,
-    payload: params.payload
-  });
+  const newBlock = mineNewBlock(
+    {
+      previousBlock: blockchain[blockchain.length - 1],
+      numberOfLeadingZeroes: blockchainConfig.numberOfLeadingZeroes,
+      maxTries: params.maxTries,
+      payload: params.payload,
+    },
+    logger,
+  );
 
   if (newBlock === undefined) {
-    console.error(`Error: Cannot mine new block`);
+    logger.error(`Error: Cannot mine new block`);
     return;
   }
 
   if (params.dryRun) {
-    console.log('Info: Dry run requested, blockchain not modified')
+    logger.info('Info: Dry run requested, blockchain not modified');
   } else {
     blockchain.push(newBlock);
     saveBlockchain(blockchain, params.blockchainPath);
   }
 
-  console.log('Done.');
-  console.log('Generated block:');
-  printBlock(newBlock);
+  logger.info('Done.');
+  logger.info('Generated block:');
+  printBlock(newBlock, logger);
 }
 
 function main(): void {
   try {
-    switch (CommandLineArgs.getCommand()) {
-      case AppCommand.Init: initializeBlockchain(CommandLineArgs.getInitParameters()); break;
-      case AppCommand.Add: addBlockToBlockchain(CommandLineArgs.getAddParameters()); break;
+    if (process.env.DEBUG === '1' && process.env.DEBUG_ARGV !== undefined) {
+      process.argv = [...process.argv, ...JSON.parse(process.env.DEBUG_ARGV)];
+    }
+    const commandLineArgs = new CommandLineArgs();
+    if (commandLineArgs.initParameters !== undefined) {
+      initializeBlockchain(commandLineArgs.initParameters);
+    } else if (commandLineArgs.addParameters !== undefined) {
+      addBlockToBlockchain(commandLineArgs.addParameters);
     }
   } catch (error) {
-    console.error(`Error: ${JSON.stringify(error)}`);
-    if (error instanceof Error) {
-      console.error(`${error.stack}`);
-    }
+    logger.exception(error, '');
   }
 }
 
